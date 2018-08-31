@@ -49,7 +49,7 @@ def main(*args):
                     output = ADB.shell("dumpsys activity com.fyber.ads")
                     pid = output.split("pid=",1)[1].split("\n", 1)[0]
                 except Exception as e:
-                    print("Couldn't find the add process, match is incorrect")
+                    print("Couldn't find the ad process, match is incorrect")
                     break
                 print("Waiting 60 seconds for the ad to pass...")
                 time.sleep(55)  # Not really 60 seconds, because we already waited 5 seconds to check the ad process
@@ -64,7 +64,7 @@ def main(*args):
             ADB.shell("su -c kill " + pid)
             time.sleep(5)
         except Exception as e:
-            print("Couldn't find the add process, assuming we didn't find the ad button")
+            print("Couldn't find the ad process, assuming we didn't find the ad button")
 
 if __name__ == '__main__':
     main(*sys.argv)
