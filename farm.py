@@ -21,41 +21,52 @@ class ADB(object):
         ADB.shell("rm /sdcard/%s.png" % name)
         print("Took screenshot: %s" %  name)
 
-def main(*args):
+def main():
+    MPx = None
 
     while True:
-        print("Searching Amino video logo \n")
-        while True:
-            ADB.screencap('screen')
-            # Picture comparison part
-            # Read the images from the file
-            small_image = cv2.imread('sample.png')
-            large_image = cv2.imread('screen.png')
-
-            method = cv2.TM_SQDIFF_NORMED       # Method used for the comparison
-            result = cv2.matchTemplate(small_image, large_image, method)
-            # We want the minimum squared difference
-            mn,ma,mnLoc,maLoc = cv2.minMaxLoc(result)
-            # Extract the coordinates of our best match
-            MPx,MPy = mnLoc
-            # Get the size of the template. This is the same size as the match.
-            trows,tcols = small_image.shape[:2]
-            print("Current match: " + str(ma*100)[:5] + "%")
-            if ma >= 0.95:
-                print("Match at " + str(mnLoc))
-                ADB.tap(MPx,MPy)
-                time.sleep(5)
-                try:
-                    output = ADB.shell("dumpsys activity com.fyber.ads")
-                    pid = output.split("pid=",1)[1].split("\n", 1)[0]
-                except Exception as e:
-                    print("Couldn't find the ad process, match is incorrect")
-                    break
+        if MPx is not None:
+            print("Amino logo already found")       # Why search again when we already know the position
+            ADB.tap(MPx,MPy)
+            time.sleep(5)
+            try:
+                output = ADB.shell("dumpsys activity com.fyber.ads")
+                pid = output.split("pid=",1)[1].split("\n", 1)[0]
                 print("Waiting 60 seconds for the ad to pass...")
                 time.sleep(55)  # Not really 60 seconds, because we already waited 5 seconds to check the ad process
-                break
-            time.sleep(2)
-
+            except Exception as e:
+                print("Couldn't find the ad process, maybe we were too quick, retrying")
+        else:
+            while True:
+                print("Searching Amino video logo \n")
+                ADB.screencap('screen')
+                # Picture comparison part
+                # Read the images from the file
+                small_image = cv2.imread('sample.png')
+                large_image = cv2.imread('screen.png')
+                method = cv2.TM_SQDIFF_NORMED       # Method used for the comparison
+                result = cv2.matchTemplate(small_image, large_image, method)
+                # We want the minimum squared difference
+                mn,ma,mnLoc,maLoc = cv2.minMaxLoc(result)
+                # Extract the coordinates of our best match
+                MPx,MPy = mnLoc
+                # Get the size of the template. This is the same size as the match.
+                trows,tcols = small_image.shape[:2]
+                print("Current match: " + str(ma*100)[:5] + "%")
+                if ma >= 0.95:
+                    print("Match at " + str(mnLoc))
+                    ADB.tap(MPx,MPy)
+                    time.sleep(5)
+                    try:
+                        output = ADB.shell("dumpsys activity com.fyber.ads")
+                        pid = output.split("pid=",1)[1].split("\n", 1)[0]
+                        print("Waiting 60 seconds for the ad to pass...")
+                        time.sleep(55)  # Not really 60 seconds, because we already waited 5 seconds to check the ad process
+                    except Exception as e:
+                        print("Couldn't find the ad process, match is incorrect")
+                        break
+                    break
+                time.sleep(2)
         try:
             output = ADB.shell("dumpsys activity com.fyber.ads")
             pid = output.split("pid=",1)[1].split("\n", 1)[0]   # Split to only get the pid# Split to only get the pid
@@ -67,4 +78,4 @@ def main(*args):
             print("Couldn't find the ad process, assuming we didn't find the ad button")
 
 if __name__ == '__main__':
-    main(*sys.argv)
+    main()
