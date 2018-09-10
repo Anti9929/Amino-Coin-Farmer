@@ -5,10 +5,11 @@ import random
 import sys
 import time
 
-# TODO : Detect if we failed to press the button and went out of the wallet activity
+# TODO :
+# Pretty much done with the wallet check -> Detect if we failed to press the button and went out of the wallet activity
 # Possible solution : Check the ad 3 times, then CV2 recognition, if it fails, relaunch wallet activity
-# Search how the ads correctly closes (ex: What does the `x` triggers when clicked)
-# Maybe find a way to detect when the add is finished
+# Search how the ads correctly closes (ex: What does the `x` triggers when clicked) <- Probably impossible since ADB doesn't allow to get activties infos
+# Maybe find a way to detect when the add is finished <- Same as above I guess
 
 sleep = 7
 
@@ -30,13 +31,33 @@ class ADB(object):
         ADB.shell("rm /sdcard/%s.png" % name)
         print("Took screenshot: %s" %  name)
 
+# Simple check before pressing the `back` key
+# Sometime, we go back to the wallet abrutely, and that breaks the loops
+# This check try to counter this
+def back():
+    print("Are we in the wallet?")
+    output = ADB.shell("dumpsys window com.narvii.wallet.WalletActivity")
+    if "com.narvii.amino.master/com.narvii.wallet.WalletActivity" in output:
+        print("Yes, not using `back` key")
+    else:
+        print("No")
+        output = ADB.shell("input keyevent 4")              # try to use the `back` key
+        time.sleep(5)
+
+# Process started when an ad is played
+def adHandling():
+    output = ADB.shell("dumpsys activity com.fyber.ads")
+    pid = output.split("pid=",1)[1].split("\n", 1)[0]
+    print("Waiting 60 seconds for the ad to pass...")
+    time.sleep(55)  # Not really 60 seconds, because we already waited 5 seconds to check the ad process
+
+
 def main():
     global sleep
     MPx = None
 
     if Path('match.txt').is_file():
-        print("Apparently, we already know the position of the button")
-        print("Skipping button search")
+        print("Apparently, we already know the position of the button\nSkipping button search")
         try:
             fp = open('match.txt', 'r')
             tmp = fp.readline()[1:-1].split(",")
@@ -51,10 +72,7 @@ def main():
             ADB.tap(MPx + random.randint(0,100),MPy + random.randint(0,10))
             time.sleep(5)
             try:
-                output = ADB.shell("dumpsys activity com.fyber.ads")
-                pid = output.split("pid=",1)[1].split("\n", 1)[0]
-                print("Waiting 60 seconds for the ad to pass...")
-                time.sleep(55)  # Not really 60 seconds, because we already waited 5 seconds to check the ad process
+                adHandling()
             except Exception as e:
                 print("Couldn't find the ad process, maybe we were too quick, retrying")
                 time.sleep(2)
@@ -84,27 +102,37 @@ def main():
                     ADB.tap(MPx + random.randint(0,100),MPy + random.randint(0,10)) # Not tapping exactly on the same pixels each time, more realism
                     time.sleep(5)
                     try:
-                        output = ADB.shell("dumpsys activity com.fyber.ads")
-                        pid = output.split("pid=",1)[1].split("\n", 1)[0]
-                        print("Waiting 60 seconds for the ad to pass...")
-                        time.sleep(55)  # Not really 60 seconds, because we already waited 5 seconds to check the ad process
+                        adHandling()
                     except Exception as e:
-                        print("Couldn't find the ad process, match is incorrect")
+                        print("Couldn't find the ad process, match may be incorrect")
                         break
                     break
                 time.sleep(2)
-        print("Pressing back to try to quit the ad")
-        output = ADB.shell("input keyevent 4")              # try to use the `back` key
-        time.sleep(5)
+        print("Pressing `back` to try to quit the ad")
+        back()
         try:
             output = ADB.shell("dumpsys activity com.fyber.ads")
             pid = output.split("pid=",1)[1].split("\n", 1)[0]   # Split to only get the pid# Split to only get the pid
-            print("Ad pid : " + pid)
-            print("Killing the ad if it didn't succeeded")
+            print("Ad pid : " + pid + "\nKilling the ad if it didn't succeeded")
             ADB.shell("su -c kill " + pid)   # -2 to kill cleanly
             time.sleep(sleep)
         except Exception as e:
-            print("Couldn't find the ad process, either we didn't find the ad button or we succesfully pressed the back key")
+            try:
+                print("Couldn't find the ad process, maybe a strange Vungle ad")
+                output = ADB.shell("dumpsys activity com.vungle.warren.ui.VungleActivity")
+                pid = output.split("pid=",1)[1].split("\n", 1)[0]   # Split to only get the pid# Split to only get the pid
+                print("Ad pid : " + pid + "\nKilling the ad")
+                ADB.shell("su -c kill " + pid)   # -2 to kill *cleanly*
+                time.sleep(sleep)
+            except Exception as e:
+                print("Couldn't find both type of ad process\nEither we didn't find the ad button or we succesfully pressed the `back` key")
+            # print("Are we still in the wallet?")
+            # output = ADB.shell("dumpsys window com.narvii.wallet.WalletActivity")
+            # if "com.narvii.amino.master/com.narvii.wallet.WalletActivity" in output:
+            #     print("Yes")
+            # else:
+            #     print("No, restarting the wallet activity")
+            #     ADB.shell("su -c am start -n com.narvii.amino.master/com.narvii.wallet.WalletActivity --activity-reorder-to-front")
 
 if __name__ == '__main__':
     main()
