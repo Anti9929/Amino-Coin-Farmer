@@ -7,7 +7,7 @@ import time
 
 # TODO :
 # Pretty much done with the wallet check -> Detect if we failed to press the button and went out of the wallet activity
-# Possible solution : Check the ad 3 times, then CV2 recognition, if it fails, relaunch wallet activity
+# Possible solution : Check the ad 3 times, then CV2 recognition, if it fails, relaunch wallet activity <- Not possible, adb doesn't allow to start activities and put them in front
 # Search how the ads correctly closes (ex: What does the `x` triggers when clicked) <- Probably impossible since ADB doesn't allow to get activties infos
 # Maybe find a way to detect when the add is finished <- Same as above I guess
 
@@ -31,16 +31,25 @@ class ADB(object):
         ADB.shell("rm /sdcard/%s.png" % name)
         print("Took screenshot: %s" %  name)
 
+
+# Check if we are in the wallet
+def walletCheck():
+    print("Are we in the wallet?")
+    output = ADB.shell("dumpsys window windows")
+    for l in output.splitlines():
+        if "mCurrentFocus" in l:
+            if "com.narvii.amino.master/com.narvii.wallet.WalletActivity" in l:
+                print("Yes")
+                return True
+    print("No")
+    return False
+
 # Simple check before pressing the `back` key
 # Sometime, we go back to the wallet abrutely, and that breaks the loops
 # This check try to counter this
 def back():
-    print("Are we in the wallet?")
-    output = ADB.shell("dumpsys window com.narvii.wallet.WalletActivity")
-    if "com.narvii.amino.master/com.narvii.wallet.WalletActivity" in output:
-        print("Yes, not using `back` key")
-    else:
-        print("No")
+    if not walletCheck():
+        print("Pressing `back`")
         output = ADB.shell("input keyevent 4")              # try to use the `back` key
         time.sleep(5)
 
@@ -69,13 +78,16 @@ def main():
     while True:
         if MPx is not None:
             print("Amino logo already found")       # Why search again when we already know the position
-            ADB.tap(MPx + random.randint(0,100),MPy + random.randint(0,10))
-            time.sleep(5)
+            if walletCheck():
+                ADB.tap(MPx + random.randint(0,100),MPy + random.randint(0,10))
+                time.sleep(5)
             try:
                 adHandling()
             except Exception as e:
                 print("Couldn't find the ad process, maybe we were too quick, retrying")
                 time.sleep(2)
+                if walletCheck():
+                    print("Hey! We're still in the wallet! That's bad!")
         else:
             while True:
                 print("Searching Amino video logo \n")
@@ -108,7 +120,6 @@ def main():
                         break
                     break
                 time.sleep(2)
-        print("Pressing `back` to try to quit the ad")
         back()
         try:
             output = ADB.shell("dumpsys activity com.fyber.ads")
@@ -126,13 +137,16 @@ def main():
                 time.sleep(sleep)
             except Exception as e:
                 print("Couldn't find both type of ad process\nEither we didn't find the ad button or we succesfully pressed the `back` key")
-            # print("Are we still in the wallet?")
-            # output = ADB.shell("dumpsys window com.narvii.wallet.WalletActivity")
-            # if "com.narvii.amino.master/com.narvii.wallet.WalletActivity" in output:
-            #     print("Yes")
-            # else:
-            #     print("No, restarting the wallet activity")
-            #     ADB.shell("su -c am start -n com.narvii.amino.master/com.narvii.wallet.WalletActivity --activity-reorder-to-front")
+
+    print("We got out of the loop, that's BAD")
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('Interrupted, killing adb')
+        os.popen("adb kill-server")
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)
