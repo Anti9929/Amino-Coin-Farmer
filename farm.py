@@ -142,6 +142,28 @@ def main():
 
 if __name__ == '__main__':
     try:
+        if(sys.argv[1] is "-c" or "--connect"):
+            def warning():          #Pretty sure it's absolutely NOT a good idea to set up a function here
+                print("Usage: -c <ip address>(:<port>)\n--connect <ip address>(:<port>)")
+                sys.exit(0)
+
+            try:
+                s = sys.argv[2]
+            except Exception as e:
+                warning()
+            a = s.split('.')
+            if len(a) != 4:
+                warning()
+            for x in a:
+                if not x.isdigit():
+                    warning()
+                i = int(x)
+                if i < 0 or i > 255:
+                    warning()
+            if("failed" in os.popen("adb connect %s" % s).read()):
+                print("Couldn't connect to your android. Please try to use a cable, or specify a port")
+                sys.exit(0)
+            time.sleep(2)
         main()
     except KeyboardInterrupt:
         print('Interrupted, killing adb')

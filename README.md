@@ -13,7 +13,7 @@ To use this script, you'll need to :
 
 3.If you haven't already, go to the developments settings of your phone/tablet, and enable Android Debug Bridge (ADB)
 
-4.You should be ready to launch this script, now simply go to the Wallet screen of the Amino app, start the script (`python farm.py`), and let the coins rain
+4.You should be ready to launch this script, now simply go to the Wallet screen of the Amino app, start the script (`python farm.py`, or `python farm.py -c <ip address>(:<port>)` with the ip address and the port of adb over network), and let the coins rain
 
 A `screen.png` file should temporarily appear when running the script for the first time. It is simply used to find the correct button to press.
 
