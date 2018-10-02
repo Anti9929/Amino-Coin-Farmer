@@ -1,5 +1,5 @@
 *.dll
 *.exe
-run.bat
+*.bat
 screen.png
 match.txt
