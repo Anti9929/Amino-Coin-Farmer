@@ -1,3 +1,7 @@
+# This project is now obsolete
+
+The Amino app was updated, and now you can only get 4 coins per days, and you can't watch ads anymore. This script is pretty much useless now
+
 # Amino Coin farmer
 __You cannot use this script if your Android device is not rooted, and if don't have busybox installed__
 
